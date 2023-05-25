@@ -1,0 +1,6 @@
+[postgresql]
+database=<osm>
+user=<osmuser>
+password=<supersecretpassword>
+host=<postgishost>
+port=5432
