@@ -3,7 +3,7 @@ node,way   aeroway      text         polygon
 node,way   area         text         polygon 
 node,way   harbour      text         polygon
 node,way   highway      text         linear
-node,way   natural:water      text         polygon 
+node,way   natural      text         polygon 
 node,way   place        text         polygon
 node,way   railway      text         linear
 node,way   tower:type   text         linear
