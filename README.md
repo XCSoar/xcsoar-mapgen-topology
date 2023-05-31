@@ -1,8 +1,8 @@
-# XCSoar Topology Generator
+# XCSoar Topology Extractor
 
 ## Description
 
-The XCSoar Topology Generator is a tool that generates topology data for use in
+The XCSoar topology extractor is a tool that generates topology data for use in
 XCSoar maps. The project utilizes data from OpenStreetMap (OSM) as its data
 source. The extraction process involves using a PostgreSQL database with
 PostGIS enabled to import the OSM planet.pbf file. The imported data is then
