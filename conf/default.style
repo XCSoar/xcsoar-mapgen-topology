@@ -139,7 +139,7 @@ node,way   shop         text         delete
 node,way   sport        text         delete
 node,way   surface      text         delete
 node,way   toll         text         delete
-node,way   tourism      text         delete 
+node,way   tourism      text         delete
 node,way   tower:type   text         delete
 way        tracktype    text         linear
 node,way   tunnel       text         linear

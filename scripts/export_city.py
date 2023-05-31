@@ -6,7 +6,7 @@ from configparser import ConfigParser
 
 # Read the connection information from the configuration file
 config = ConfigParser()
-config.read("config.ini")
+config.read("../conf/config.ini")
 database = config.get("postgresql", "database")
 user = config.get("postgresql", "user")
 password = config.get("postgresql", "password")
