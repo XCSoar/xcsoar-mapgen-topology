@@ -12,3 +12,7 @@ repos:
     rev: 22.6.0
     hooks:
       - id: black
+  - repo: https://github.com/koalaman/shellcheck-precommit
+    rev: v0.9.0
+    hooks:
+    -   id: shellcheck
