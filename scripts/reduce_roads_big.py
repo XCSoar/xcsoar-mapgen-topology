@@ -23,7 +23,7 @@ cur.execute(
     """
     DROP TABLE IF EXISTS reduced_roads_big;
     CREATE TABLE reduced_roads_big AS
-    SELECT osm_id, ST_Simplify(way, 30) AS way_reduced
+    SELECT osm_id, ST_Simplify(way, 8) AS way_reduced
     FROM planet_osm_roads
     WHERE ("highway" = 'motorway' OR "highway" = 'primary' OR "highway" = 'primary_link')
 """
