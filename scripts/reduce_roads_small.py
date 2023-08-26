@@ -24,7 +24,7 @@ cur.execute(
     DROP TABLE IF EXISTS reduced_roads_small;
     CREATE TABLE reduced_roads_small AS
     SELECT osm_id, ST_Simplify(way, 30) AS way_reduced
-    FROM planet_osm_roads
+    FROM planet_osm_line
     WHERE "highway" = 'residential' or "highway" = 'unclassified' or "highway" = 'tertiary'
 """
 )
