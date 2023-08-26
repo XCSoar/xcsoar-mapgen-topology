@@ -49,6 +49,21 @@ FROM
 WHERE
     aeroway = 'runway' AND ST_IsValid(way);
 
+INSERT INTO runway_polygons (osm_id, aeroway, ref, width, polygon)
+SELECT
+    osm_id,
+    aeroway,
+    ref,
+    CASE
+        WHEN width ~ '^[-+]?[0-9]+(\.[0-9]+)?$' THEN width::numeric
+        ELSE 30
+    END AS width,
+    ST_SetSRID(ST_Buffer(ST_MakeValid(way), CASE WHEN width ~ '^[-+]?[0-9]+(\.[0-9]+)?$' THEN width::numeric / 2 ELSE 15 END, 'endcap=flat join=mitre'), 3857) AS polygon
+FROM
+    planet_osm_line
+WHERE
+    aeroway = 'taxiway' AND ST_IsValid(way);
+
 -- Add an index for better query performance
 CREATE INDEX idx_runway_polygons ON runway_polygons USING GIST (polygon);
 
