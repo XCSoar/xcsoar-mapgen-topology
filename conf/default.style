@@ -86,7 +86,7 @@ node,way   addr:housename      text  delete
 node,way   addr:housenumber    text  delete
 node,way   addr:interpolation  text  delete
 node,way   admin_level  text         delete
-node,way   aerialway    text         delete
+node,way   aerialway    text         linear
 node,way   aeroway      text         linear
 node,way   amenity      text         delete
 node,way   area         text         polygon # hard coded support for area=1/yes => polygon is in osm2pgsql
@@ -127,10 +127,10 @@ node,way   oneway       text         delete
 node,way   operator     text         delete
 node,way   place        text         polygon
 node,way   population   text         delete
-node,way   power        text         delete
+node,way   power        text         linear
 node,way   power_source text         delete
 node,way   public_transport text     delete
-node,way   railway      text         delete
+node,way   railway      text         linear
 node,way   ref          text         linear
 node,way   religion     text         delete
 node,way   route        text         delete
