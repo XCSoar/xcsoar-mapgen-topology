@@ -25,7 +25,7 @@ cur.execute(
     CREATE TABLE reduced_railway AS
     SELECT osm_id, ST_Simplify(way, 8) AS way_reduced
     FROM planet_osm_line
-    WHERE ("railway" = 'rail')
+    WHERE ("railway" = 'rail' OR "railway" = 'narrow_gauge')
 """
 )
 conn.commit()
