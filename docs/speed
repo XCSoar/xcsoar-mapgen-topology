@@ -1,0 +1,6 @@
+# Optimizations for speed
+
+# Flatnode file import 
+2023-10-04 13:44:26    Processed 8631263509 nodes in 1500s (25m 0s) - 5754k/s
+2023-10-04 13:44:26    Processed 968694815 ways in 70031s (19h 27m 11s) - 14k/s
+2023-10-04 13:44:26    Processed 11290477 relations in 51419s (14h 16m 59s) - 220/s      
