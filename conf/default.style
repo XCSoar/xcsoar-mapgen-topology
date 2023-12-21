@@ -126,7 +126,7 @@ node,way   office       text         delete
 node,way   oneway       text         delete
 node,way   operator     text         delete
 node,way   place        text         polygon
-node,way   population   text         delete
+node,way   population   text         linear
 node,way   power        text         linear
 node,way   power_source text         delete
 node,way   public_transport text     delete
