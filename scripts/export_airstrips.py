@@ -22,7 +22,7 @@ conn = psycopg2.connect(
 sql_small = "SELECT * FROM runway_polygons"
 
 # Fetch the geometries from the database and create GeoDataFrames
-gdf_small = gpd.GeoDataFrame.from_postgis(sql_small, conn, geom_col="polygon")
+gdf_small = gpd.GeoDataFrame.from_postgis(sql_small, conn, geom_col="multipolygon")
 
 # Set the output shapefile paths
 output_dir = "out/"

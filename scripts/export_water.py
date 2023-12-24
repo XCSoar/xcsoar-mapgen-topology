@@ -18,6 +18,9 @@ conn = psycopg2.connect(
     database=database, user=user, password=password, host=host, port=port
 )
 
+# Set the CRS (WGS84)
+crs = "EPSG:4326"
+
 # Set the SQL queries to retrieve the desired geometries
 sql_small = "SELECT * FROM water_polygons_small"
 sql_large = "SELECT * FROM water_polygons_large"
@@ -28,6 +31,11 @@ gdf_small = gpd.GeoDataFrame.from_postgis(sql_small, conn, geom_col="way")
 gdf_large = gpd.GeoDataFrame.from_postgis(sql_large, conn, geom_col="way")
 gdf_lines = gpd.GeoDataFrame.from_postgis(sql_lines, conn, geom_col="way")
 
+gdf_small = gdf_small.to_crs(crs)
+gdf_large = gdf_large.to_crs(crs)
+gdf_lines = gdf_lines.to_crs(crs)
+
+#
 # Set the output shapefile paths
 output_dir = "out/"
 output_shapefile_small = output_dir + "water_area_small.shp"

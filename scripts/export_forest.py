@@ -18,6 +18,9 @@ conn = psycopg2.connect(
     database=database, user=user, password=password, host=host, port=port
 )
 
+# Set the CRS (WGS84)
+crs = "EPSG:4326"
+
 # Set the SQL queries to retrieve the desired geometries
 sql_small = "SELECT * FROM forest_polygons_small"
 sql_large = "SELECT * FROM forest_polygons_large"
@@ -26,13 +29,15 @@ sql_large = "SELECT * FROM forest_polygons_large"
 gdf_small = gpd.GeoDataFrame.from_postgis(sql_small, conn, geom_col="way")
 gdf_large = gpd.GeoDataFrame.from_postgis(sql_large, conn, geom_col="way")
 
+gdf_small = gdf_small.to_crs(crs)
+gdf_large = gdf_large.to_crs(crs)
+
+
 # Set the output shapefile paths
 output_dir = "out/"
 output_shapefile_small = output_dir + "forest_area_small.shp"
 output_shapefile_large = output_dir + "forest_area_large.shp"
 
-# Set the CRS (WGS84)
-crs = "EPSG:4326"
 
 # Export the GeoDataFrames to shapefiles with ISO encoding and WGS84 SRS
 gdf_small.to_file(
