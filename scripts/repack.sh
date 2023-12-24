@@ -1,12 +1,13 @@
 #!/bin/sh
 
 tmp_dir=$(mktemp -d)
-unzip -d "$tmp_dir" ../xcm/ALPS_HighRes.xcm
+xcm_dir=$(mktemp -d)
+unzip -d "$xcm_dir" ../xcm/ALPS_HighRes.xcm
 
 # delete topology files
-find "$tmp_dir" \( -name '*.dbf' -o -name '*.prj' -o -name '*.qix' -o -name '*.shp' -o -name '*.shx' \) -delete
+cp "$xcm_dir"/terrain.* "$tmp_dir"/
 
-cp out/* topology.tpl "$tmp_dir"
+cp out/* ../topology/topology.tpl "$tmp_dir"
 
 rm -f ~/.xcsoar/ALPS_Test.xcm waypoints.cup
 
@@ -15,4 +16,4 @@ rm -f ~/.xcsoar/ALPS_Test.xcm waypoints.cup
 	zip -0 ~/.xcsoar/ALPS_Test.xcm ./*
 )
 
-rm -rf "$tmp_dir"
+rm -rf "$tmp_dir" "$xcm_dir"
