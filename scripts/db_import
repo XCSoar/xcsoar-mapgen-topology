@@ -1,0 +1,28 @@
+from conf.db_chunk_utils import execute_query_in_chunks
+import psycopg2
+import sys
+
+def main():
+    try:
+        connection = psycopg2.connect(user="user", password="password", host="127.0.0.1", port="5432", database="dbname")
+        cursor = connection.cursor()
+        
+        # Example large SQL query execution refactored for chunked execution
+        data_to_insert = [(i, f"Name{i}", f"Value{i}") for i in range(10000)]  # Example data preparation in list of tuples format
+        query = "INSERT INTO your_table (id, name, value) VALUES %s"
+        
+        # Using the chunk utility function to execute the query in chunks
+        execute_query_in_chunks(cursor, query, data_to_insert, chunk_size=500)
+        
+        connection.commit()
+    except (Exception, psycopg2.DatabaseError) as error:
+        print(f"Error while connecting to PostgreSQL: {error}")
+        sys.exit(1)
+    finally:
+        if connection:
+            cursor.close()
+            connection.close()
+            print("PostgreSQL connection is closed.")
+
+if __name__ == "__main__":
+    main()
