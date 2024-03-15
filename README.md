@@ -28,7 +28,8 @@ To install and set up the XCSoar Topology Generator, follow these steps:
    and `password` according to your PostgreSQL database configuration.
 1. Install the necessary Python libraries by running `pip install -r
    requirements.txt`.
-1. Run the script `./scripts/db_create.sh` to create the database with PostGIS
+1. Run the script `./scripts/db_create.sh` to create the database with PostGIS extensions.
+1. Ensure the `db_chunk_utils.py` script is created in the `conf` directory for efficient database operations.
    extensions.
 1. Use the script `./scripts/db_import <pbf>` to import the OSM planet.pbf file
    into the PostGIS database. Replace `<pbf>` with the path to your OSM
@@ -63,7 +64,7 @@ the following usage instructions:
    topology based on your requirements.
 1. Generate shapefiles by executing the corresponding `./scripts/export_*`
    script. The shapefiles will be saved in the output directory.
-
+1. Before the final step, ensure that the PostgreSQL database is configured to handle multiple transactions efficiently, as chunked operations may increase the number of transactions. This might involve adjusting the PostgreSQL configuration for parameters such as `max_connections` and `work_mem`.
 Note: Be aware that the import process can be time-consuming, and the reduction
 and export steps might require substantial computational resources depending on
 the size of the dataset.
