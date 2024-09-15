@@ -25,7 +25,7 @@ cur.execute(
     CREATE TABLE reduced_roads_big AS
     SELECT osm_id, ST_Simplify(way, 8) AS way_reduced
     FROM planet_osm_roads
-    WHERE ("highway" = 'motorway' OR "highway" = 'primary' OR "highway" = 'primary_link' OR "highway" = 'trunk')
+    WHERE ("highway" = 'motorway' OR "highway" = 'primary' OR "highway" = 'primary_link' OR "highway" = 'trunk' OR "highway" = 'trunk_link')
 """
 )
 conn.commit()
