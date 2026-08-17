@@ -1,0 +1,2 @@
+geopandas>=0.12
+psycopg2-binary>=2.9
