@@ -1,15 +1,17 @@
 #!/usr/bin/python3
 
-from dbutil import connect
+from dbutil import connect, in_map_bbox
 
 conn = connect()
 cur = conn.cursor()
 
-# Forests are drawn at 2–4 nm (still visible when zoomed in). Drop
-# scraps under 2 ha, dissolve adjacent patches, strip small clearings,
-# then simplify: 40 m on the 2 nm layer, 100 m on the 4 nm layer.
+# Forests are drawn at 2–8 nm (still visible when zoomed in). XCSoar
+# also skips vertices near the layer's max range, so the large layer
+# must keep enough points to look smooth when zoomed out.
+# Drop scraps under 2 ha. Grid-dissolve, then merge stands that still
+# touch across the 20 km cell edges.
 cur.execute(
-    """
+    f"""
 DROP TABLE IF EXISTS forest_polygons_small;
 DROP TABLE IF EXISTS forest_polygons_large;
 DROP TABLE IF EXISTS forest_dissolved;
@@ -17,14 +19,15 @@ DROP TABLE IF EXISTS forest_dissolved;
 CREATE TABLE forest_dissolved AS
 WITH simplified AS (
   SELECT ST_CollectionExtract(
-           ST_MakeValid(ST_Simplify(ST_MakeValid(way), 80)),
+           ST_MakeValid(ST_SimplifyPreserveTopology(ST_MakeValid(way), 15)),
            3
          ) AS way
   FROM planet_osm_polygon
   WHERE ("landuse" = 'forest' OR "natural" = 'wood')
     AND ST_Area(way) >= 20000
+    AND {in_map_bbox()}
 ),
-dissolved AS (
+pass1 AS (
   SELECT (ST_Dump(
     ST_CollectionExtract(
       ST_MakeValid(ST_UnaryUnion(ST_Collect(way), 20)),
@@ -39,16 +42,26 @@ dissolved AS (
     WHERE way IS NOT NULL AND NOT ST_IsEmpty(way)
   ) s
   GROUP BY gx, gy
+),
+clusters AS (
+  SELECT unnest(ST_ClusterIntersecting(way)) AS geom
+  FROM pass1
+  WHERE way IS NOT NULL AND NOT ST_IsEmpty(way)
+    AND GeometryType(way) IN ('POLYGON', 'POLYGONZ')
 )
-SELECT way FROM dissolved
-WHERE way IS NOT NULL AND NOT ST_IsEmpty(way)
-  AND GeometryType(way) IN ('POLYGON', 'POLYGONZ');
+SELECT (ST_Dump(
+  ST_CollectionExtract(ST_MakeValid(ST_UnaryUnion(geom, 20)), 3)
+)).geom AS way
+FROM clusters
+WHERE geom IS NOT NULL AND NOT ST_IsEmpty(geom);
 
 CREATE TABLE forest_polygons_small AS
 SELECT (ST_Dump(way)).geom AS way
 FROM (
   SELECT ST_CollectionExtract(
-           ST_MakeValid(ST_Simplify(ST_MakePolygon(ST_ExteriorRing(way)), 40)),
+           ST_MakeValid(ST_SimplifyPreserveTopology(
+             ST_MakePolygon(ST_ExteriorRing(way)), 15
+           )),
            3
          ) AS way
   FROM forest_dissolved
@@ -60,7 +73,7 @@ CREATE TABLE forest_polygons_large AS
 SELECT (ST_Dump(way)).geom AS way
 FROM (
   SELECT ST_CollectionExtract(
-    ST_MakeValid(ST_Simplify(
+    ST_MakeValid(ST_SimplifyPreserveTopology(
       CASE
         WHEN ST_NumInteriorRings(way) = 0 THEN way
         ELSE ST_MakePolygon(
@@ -68,11 +81,11 @@ FROM (
           ARRAY(
             SELECT ST_InteriorRingN(way, n)
             FROM generate_series(1, ST_NumInteriorRings(way)) AS n
-            WHERE ST_Area(ST_MakePolygon(ST_InteriorRingN(way, n))) >= 40000
+            WHERE ST_Area(ST_MakePolygon(ST_InteriorRingN(way, n))) >= 20000
           )
         )
       END,
-      100
+      15
     )),
     3
   ) AS way

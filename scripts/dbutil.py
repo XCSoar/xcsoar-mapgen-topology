@@ -10,6 +10,23 @@ REPO_ROOT = SCRIPTS_DIR.parent
 CONFIG_PATH = REPO_ROOT / "conf" / "config.ini"
 OUTPUT_DIR = SCRIPTS_DIR / "out"
 
+# ALPS_HighRes.xcm info.txt rectangle (WGS84). osm2pgsql stores
+# geometries in EPSG:3857, so reduce queries filter with this envelope
+# instead of clipping the PBF first.
+MAP_BBOX_WEST = 4.5
+MAP_BBOX_SOUTH = 43.4
+MAP_BBOX_EAST = 16.5
+MAP_BBOX_NORTH = 49.0
+
+
+def in_map_bbox(column="way"):
+    """GIST-indexable overlap with the XCSoar map rectangle."""
+    return (
+        f"{column} && ST_Transform(ST_MakeEnvelope("
+        f"{MAP_BBOX_WEST}, {MAP_BBOX_SOUTH}, "
+        f"{MAP_BBOX_EAST}, {MAP_BBOX_NORTH}, 4326), 3857)"
+    )
+
 
 def connect():
     config = ConfigParser()

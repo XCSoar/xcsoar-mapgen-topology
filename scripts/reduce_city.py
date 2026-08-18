@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from dbutil import connect
+from dbutil import connect, in_map_bbox
 
 conn = connect()
 cur = conn.cursor()
@@ -9,7 +9,7 @@ cur = conn.cursor()
 # by the zoom of each layer. Large city areas are drawn to 50 nm (still
 # visible when zoomed in); small only to 2 nm.
 cur.execute(
-    """
+    f"""
 DROP TABLE IF EXISTS city_polygons_small;
 DROP TABLE IF EXISTS city_polygons_large;
 DROP TABLE IF EXISTS city_dissolved;
@@ -23,6 +23,7 @@ WITH simplified AS (
   FROM planet_osm_polygon
   WHERE "landuse" IN ('residential', 'industrial', 'commercial')
     AND ST_Area(way) >= 2000
+    AND {in_map_bbox()}
 ),
 dissolved AS (
   SELECT (ST_Dump(

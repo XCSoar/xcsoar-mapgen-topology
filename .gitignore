@@ -4,6 +4,7 @@ out/*
 scripts/out/
 scripts/__pycache__/
 flatnodes
+xcm/*.xcm
 /bin/
 /lib/
 /include/

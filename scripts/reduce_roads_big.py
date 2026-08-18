@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from dbutil import connect
+from dbutil import connect, in_map_bbox
 
 conn = connect()
 cur = conn.cursor()
@@ -9,7 +9,7 @@ cur = conn.cursor()
 # one pixel at 2 nm and keeps motorway curves. Drop OSM tunnels
 # (tunnel=yes and similar); they are not useful on a flying map.
 cur.execute(
-    """
+    f"""
     DROP TABLE IF EXISTS reduced_roads_big;
     CREATE TABLE reduced_roads_big AS
     SELECT osm_id, way_reduced
@@ -23,6 +23,7 @@ cur.execute(
         'primary', 'primary_link'
       )
         AND (tunnel IS NULL OR tunnel = 'no')
+        AND {in_map_bbox()}
     ) s
     WHERE way_reduced IS NOT NULL AND NOT ST_IsEmpty(way_reduced);
 """

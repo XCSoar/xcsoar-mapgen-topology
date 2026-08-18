@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from dbutil import connect
+from dbutil import connect, in_map_bbox
 
 conn = connect()
 cur = conn.cursor()
@@ -10,14 +10,15 @@ cur = conn.cursor()
 # suburb/village (3 nm). Named places only; skip hamlet (too dense).
 # Do not cast population: OSM values are often non-numeric and abort the query.
 cur.execute(
-    """
+    f"""
     DROP TABLE IF EXISTS reduced_place_points;
     CREATE TABLE reduced_place_points AS
     SELECT way AS geom, name, place
     FROM planet_osm_point
     WHERE place IN ('city', 'town', 'suburb', 'village')
       AND name IS NOT NULL
-      AND name <> '';
+      AND name <> ''
+      AND {in_map_bbox()};
 """
 )
 conn.commit()

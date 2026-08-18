@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from dbutil import connect
+from dbutil import connect, in_map_bbox
 
 conn = connect()
 cur = conn.cursor()
@@ -12,7 +12,7 @@ cur = conn.cursor()
 # Lines (50 nm): river + canal centreline at 10 m, clipped away where
 # a water polygon is already drawn (XCSoar cannot hide a layer on zoom).
 cur.execute(
-    """
+    f"""
 DROP TABLE IF EXISTS water_polygons_small;
 DROP TABLE IF EXISTS water_polygons_large;
 
@@ -26,6 +26,7 @@ FROM (
     AND (water IS NULL OR water NOT IN (
       'canal', 'ditch', 'drain'))
     AND ST_Area(way) >= 1000 AND ST_Area(way) < 300000
+    AND {in_map_bbox()}
 ) s
 WHERE way IS NOT NULL
   AND NOT ST_IsEmpty(way)
@@ -64,6 +65,7 @@ FROM (
         AND (water IS NULL OR water NOT IN (
           'stream', 'canal', 'ditch', 'drain'))
         AND ST_Area(way) >= 300000
+        AND {in_map_bbox()}
     ) d
     WHERE GeometryType(d.geom) IN ('POLYGON', 'POLYGONZ')
   ) r
@@ -76,7 +78,7 @@ WHERE way IS NOT NULL
 conn.commit()
 
 cur.execute(
-    """
+    f"""
 CREATE INDEX IF NOT EXISTS water_polygons_small_way_idx
   ON water_polygons_small USING GIST (way);
 CREATE INDEX IF NOT EXISTS water_polygons_large_way_idx
@@ -111,6 +113,7 @@ FROM (
       ) p
     ) mask ON true
     WHERE l.waterway IN ('river', 'canal')
+      AND {in_map_bbox("l.way")}
   ) l
 ) s
 WHERE geom IS NOT NULL

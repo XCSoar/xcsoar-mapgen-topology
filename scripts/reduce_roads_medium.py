@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from dbutil import connect
+from dbutil import connect, in_map_bbox
 
 conn = connect()
 cur = conn.cursor()
@@ -8,7 +8,7 @@ cur = conn.cursor()
 # Visible out to 8 nm. Tertiary belongs here (not on the 2 nm layer)
 # so it remains useful for navigation at typical cross-country zoom.
 cur.execute(
-    """
+    f"""
     DROP TABLE IF EXISTS reduced_roads_medium;
     CREATE TABLE reduced_roads_medium AS
     SELECT osm_id, way_reduced
@@ -21,6 +21,7 @@ cur.execute(
         'tertiary', 'tertiary_link'
       )
         AND (tunnel IS NULL OR tunnel = 'no')
+        AND {in_map_bbox()}
     ) s
     WHERE way_reduced IS NOT NULL AND NOT ST_IsEmpty(way_reduced);
 """

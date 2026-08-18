@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from dbutil import connect
+from dbutil import connect, in_map_bbox
 
 conn = connect()
 cur = conn.cursor()
@@ -9,7 +9,7 @@ cur = conn.cursor()
 # Taxiways are omitted: at 10 nm they turn airfields into blobs.
 # Also keep polygon runways from OSM. 3 m simplify drops buffer arcs.
 cur.execute(
-    r"""
+    rf"""
 DROP TABLE IF EXISTS runway_polygons;
 
 CREATE TABLE runway_polygons (
@@ -57,6 +57,7 @@ FROM (
     WHERE aeroway = 'runway'
       AND way IS NOT NULL
       AND NOT ST_IsEmpty(way)
+      AND {in_map_bbox()}
 ) s
 WHERE buffered IS NOT NULL AND NOT ST_IsEmpty(buffered);
 
@@ -76,7 +77,8 @@ SELECT
 FROM planet_osm_polygon
 WHERE aeroway = 'runway'
   AND way IS NOT NULL
-  AND NOT ST_IsEmpty(ST_CollectionExtract(ST_MakeValid(way), 3));
+  AND NOT ST_IsEmpty(ST_CollectionExtract(ST_MakeValid(way), 3))
+  AND {in_map_bbox()};
 
 CREATE INDEX idx_runway_polygons ON runway_polygons USING GIST (multipolygon);
 """
