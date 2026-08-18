@@ -28,8 +28,33 @@ To install and set up the XCSoar Topology Generator, follow these steps:
    and `password` according to your PostgreSQL database configuration.
 1. Install the necessary Python libraries by running `pip install -r
    requirements.txt`.
-1. Run the script `./scripts/db_create.sh` to create the database with PostGIS
-   extensions.
+1. Create a PostgreSQL database with PostGIS and hstore. Either run
+   `./scripts/db_create.sh` on a local PostgreSQL server, or start PostGIS
+   with Docker and skip `db_create.sh`:
+
+   ```sh
+   docker run -d --name xcsoar-postgis \
+     --shm-size=2g \
+     -e POSTGRES_USER=osmuser \
+     -e POSTGRES_PASSWORD=newgis23 \
+     -e POSTGRES_DB=osm \
+     -e POSTGRES_INITDB_ARGS="--encoding=UTF8" \
+     -p 5432:5432 \
+     -v xcsoar-postgis-data:/var/lib/postgresql/data \
+     postgis/postgis:16-3.5
+   ```
+
+   Wait until the database is up, then enable hstore:
+
+   ```sh
+   docker exec xcsoar-postgis psql -U osmuser -d osm \
+     -c "CREATE EXTENSION IF NOT EXISTS hstore;"
+   ```
+
+   `./scripts/db_docker.sh` runs both commands. Point `conf/config.ini` at
+   `host=localhost`, `database=osm`, `user=osmuser`, and
+   `password=newgis23`. To keep the database on a large disk, replace the
+   named volume with `-v /path/to/disk:/var/lib/postgresql/data`.
 1. Use the script `./scripts/db_import <pbf>` to import the OSM planet.pbf file
    into the PostGIS database. Replace `<pbf>` with the path to your OSM
    planet.pbf file. **Note:** This process can take a considerable amount of time,

@@ -1,35 +1,26 @@
 #!/usr/bin/python3
 
-import psycopg2
-from configparser import ConfigParser
+from dbutil import connect
 
-# Read the connection information from the configuration file
-config = ConfigParser()
-config.read("../conf/config.ini")
-database = config.get("postgresql", "database")
-user = config.get("postgresql", "user")
-password = config.get("postgresql", "password")
-host = config.get("postgresql", "host")
-port = config.get("postgresql", "port")
-
-# Connect to the PostgreSQL database
-conn = psycopg2.connect(
-    database=database, user=user, password=password, host=host, port=port
-)
+conn = connect()
 cur = conn.cursor()
 
-# Create a table for the filtered and simplified polygons
+# Visible out to 10 nm. Transmission lines are long and straight;
+# 15 m is enough even when zoomed in.
 cur.execute(
     """
     DROP TABLE IF EXISTS reduced_powerlines;
     CREATE TABLE reduced_powerlines AS
-    SELECT osm_id, ST_Simplify(way, 8) AS way_reduced
-    FROM planet_osm_line
-    WHERE ("power" = 'line')
+    SELECT osm_id, way_reduced
+    FROM (
+      SELECT osm_id, ST_Simplify(way, 15) AS way_reduced
+      FROM planet_osm_line
+      WHERE "power" = 'line'
+    ) s
+    WHERE way_reduced IS NOT NULL AND NOT ST_IsEmpty(way_reduced);
 """
 )
 conn.commit()
 
-# Close the database connection
 cur.close()
 conn.close()

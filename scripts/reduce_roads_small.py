@@ -1,35 +1,28 @@
 #!/usr/bin/python3
 
-import psycopg2
-from configparser import ConfigParser
+from dbutil import connect
 
-# Read the connection information from the configuration file
-config = ConfigParser()
-config.read("../conf/config.ini")
-database = config.get("postgresql", "database")
-user = config.get("postgresql", "user")
-password = config.get("postgresql", "password")
-host = config.get("postgresql", "host")
-port = config.get("postgresql", "port")
-
-# Connect to the PostgreSQL database
-conn = psycopg2.connect(
-    database=database, user=user, password=password, host=host, port=port
-)
+conn = connect()
 cur = conn.cursor()
 
-# Create a table for the filtered and simplified polygons
+# Visible only to 2 nm. 30 m simplify is several pixels at that range
+# and turns residential streets into sticks.
 cur.execute(
     """
     DROP TABLE IF EXISTS reduced_roads_small;
     CREATE TABLE reduced_roads_small AS
-    SELECT osm_id, ST_Simplify(way, 30) AS way_reduced
-    FROM planet_osm_line
-    WHERE "highway" = 'residential' or "highway" = 'unclassified' or "highway" = 'tertiary'
+    SELECT osm_id, way_reduced
+    FROM (
+      SELECT osm_id,
+        ST_SimplifyPreserveTopology(way, 5) AS way_reduced
+      FROM planet_osm_line
+      WHERE "highway" IN ('residential', 'unclassified')
+        AND (tunnel IS NULL OR tunnel = 'no')
+    ) s
+    WHERE way_reduced IS NOT NULL AND NOT ST_IsEmpty(way_reduced);
 """
 )
 conn.commit()
 
-# Close the database connection
 cur.close()
 conn.close()

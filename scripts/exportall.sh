@@ -1,4 +1,6 @@
 #!/bin/sh
+cd "$(dirname "$0")" || exit
+
 python3 ./export_airstrips.py
 python3 ./export_city.py
 python3 ./export_forest.py

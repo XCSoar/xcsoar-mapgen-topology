@@ -1,4 +1,11 @@
 osm/*
 conf/config.ini
 out/*
+scripts/out/
+scripts/__pycache__/
 flatnodes
+/bin/
+/lib/
+/include/
+/pyvenv.cfg
+/CACHEDIR.TAG

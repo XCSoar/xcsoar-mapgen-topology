@@ -1,35 +1,33 @@
 #!/usr/bin/python3
 
-import psycopg2
-from configparser import ConfigParser
+from dbutil import connect
 
-# Read the connection information from the configuration file
-config = ConfigParser()
-config.read("../conf/config.ini")
-database = config.get("postgresql", "database")
-user = config.get("postgresql", "user")
-password = config.get("postgresql", "password")
-host = config.get("postgresql", "host")
-port = config.get("postgresql", "port")
-
-# Connect to the PostgreSQL database
-conn = psycopg2.connect(
-    database=database, user=user, password=password, host=host, port=port
-)
+conn = connect()
 cur = conn.cursor()
 
-# Create a table for the filtered and simplified polygons
+# Visible out to 15 nm, and still drawn when zoomed in. 10 m is about
+# one pixel at 2 nm and keeps motorway curves. Drop OSM tunnels
+# (tunnel=yes and similar); they are not useful on a flying map.
 cur.execute(
     """
     DROP TABLE IF EXISTS reduced_roads_big;
     CREATE TABLE reduced_roads_big AS
-    SELECT osm_id, ST_Simplify(way, 8) AS way_reduced
-    FROM planet_osm_roads
-    WHERE ("highway" = 'motorway' OR "highway" = 'primary' OR "highway" = 'primary_link' OR "highway" = 'trunk' OR "highway" = 'trunk_link')
+    SELECT osm_id, way_reduced
+    FROM (
+      SELECT osm_id,
+        ST_SimplifyPreserveTopology(way, 10) AS way_reduced
+      FROM planet_osm_roads
+      WHERE "highway" IN (
+        'motorway', 'motorway_link',
+        'trunk', 'trunk_link',
+        'primary', 'primary_link'
+      )
+        AND (tunnel IS NULL OR tunnel = 'no')
+    ) s
+    WHERE way_reduced IS NOT NULL AND NOT ST_IsEmpty(way_reduced);
 """
 )
 conn.commit()
 
-# Close the database connection
 cur.close()
 conn.close()

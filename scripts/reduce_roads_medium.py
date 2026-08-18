@@ -1,35 +1,31 @@
 #!/usr/bin/python3
 
-import psycopg2
-from configparser import ConfigParser
+from dbutil import connect
 
-# Read the connection information from the configuration file
-config = ConfigParser()
-config.read("../conf/config.ini")
-database = config.get("postgresql", "database")
-user = config.get("postgresql", "user")
-password = config.get("postgresql", "password")
-host = config.get("postgresql", "host")
-port = config.get("postgresql", "port")
-
-# Connect to the PostgreSQL database
-conn = psycopg2.connect(
-    database=database, user=user, password=password, host=host, port=port
-)
+conn = connect()
 cur = conn.cursor()
 
-# Create a table for the filtered and simplified polygons
+# Visible out to 8 nm. Tertiary belongs here (not on the 2 nm layer)
+# so it remains useful for navigation at typical cross-country zoom.
 cur.execute(
     """
     DROP TABLE IF EXISTS reduced_roads_medium;
     CREATE TABLE reduced_roads_medium AS
-    SELECT osm_id, ST_Simplify(way, 30) AS way_reduced
-    FROM planet_osm_roads
-    WHERE "highway" = 'secondary' OR "highway" = 'secondary_link'
+    SELECT osm_id, way_reduced
+    FROM (
+      SELECT osm_id,
+        ST_SimplifyPreserveTopology(way, 10) AS way_reduced
+      FROM planet_osm_line
+      WHERE "highway" IN (
+        'secondary', 'secondary_link',
+        'tertiary', 'tertiary_link'
+      )
+        AND (tunnel IS NULL OR tunnel = 'no')
+    ) s
+    WHERE way_reduced IS NOT NULL AND NOT ST_IsEmpty(way_reduced);
 """
 )
 conn.commit()
 
-# Close the database connection
 cur.close()
 conn.close()

@@ -1,81 +1,87 @@
 #!/usr/bin/python3
 
-import psycopg2
-from configparser import ConfigParser
+from dbutil import connect
 
-# Read the connection information from the configuration file
-config = ConfigParser()
-config.read("../conf/config.ini")
-database = config.get("postgresql", "database")
-user = config.get("postgresql", "user")
-password = config.get("postgresql", "password")
-host = config.get("postgresql", "host")
-port = config.get("postgresql", "port")
-
-# Connect to the PostgreSQL database
-conn = psycopg2.connect(
-    database=database, user=user, password=password, host=host, port=port
-)
+conn = connect()
 cur = conn.cursor()
 
-# Create a table for the filtered and simplified polygons
+# Buffer line runways in metres (geography), not Web Mercator units.
+# Taxiways are omitted: at 10 nm they turn airfields into blobs.
+# Also keep polygon runways from OSM. 3 m simplify drops buffer arcs.
 cur.execute(
-    """
--- Drop the table if it exists
+    r"""
 DROP TABLE IF EXISTS runway_polygons;
 
--- Create a new table to store the rectangular multipolygons
 CREATE TABLE runway_polygons (
     osm_id bigint,
     aeroway varchar(255),
     ref varchar(255),
     width numeric,
-    multipolygon geometry(MultiPolygon, 3857) -- Set SRID to 3857 (Web Mercator)
+    multipolygon geometry(MultiPolygon, 3857)
 );
 
--- Insert data into the new table with explicit SRID setting for runways
 INSERT INTO runway_polygons (osm_id, aeroway, ref, width, multipolygon)
 SELECT
     osm_id,
     aeroway,
     ref,
     CASE
-        WHEN width ~ '^[-+]?[0-9]+(\.[0-9]+)?$' THEN width::numeric
+        WHEN width ~ '^[0-9]+([.][0-9]+)?$' THEN width::numeric
         ELSE 30
     END AS width,
-    ST_SetSRID(ST_Multi(ST_Buffer(ST_MakeValid(way),
-                    CASE WHEN width ~ '^[-+]?[0-9]+(\.[0-9]+)?$' THEN width::numeric / 2 ELSE 15 END,
-                    'endcap=flat join=mitre')), 3857) AS multipolygon
-FROM
-    planet_osm_line
-WHERE
-    aeroway = 'runway' AND ST_IsValid(way);
+    ST_Multi(ST_CollectionExtract(
+        ST_MakeValid(ST_SimplifyPreserveTopology(buffered, 3)),
+        3
+    )) AS multipolygon
+FROM (
+    SELECT
+        osm_id,
+        aeroway,
+        ref,
+        width,
+        ST_Transform(
+            ST_SetSRID(
+                ST_Buffer(
+                    ST_Transform(ST_MakeValid(way), 4326)::geography,
+                    CASE
+                        WHEN width ~ '^[0-9]+([.][0-9]+)?$'
+                        THEN width::numeric / 2
+                        ELSE 15
+                    END
+                )::geometry,
+                4326
+            ),
+            3857
+        ) AS buffered
+    FROM planet_osm_line
+    WHERE aeroway = 'runway'
+      AND way IS NOT NULL
+      AND NOT ST_IsEmpty(way)
+) s
+WHERE buffered IS NOT NULL AND NOT ST_IsEmpty(buffered);
 
--- Insert data into the new table with explicit SRID setting for taxiways
 INSERT INTO runway_polygons (osm_id, aeroway, ref, width, multipolygon)
 SELECT
     osm_id,
     aeroway,
     ref,
     CASE
-        WHEN width ~ '^[-+]?[0-9]+(\.[0-9]+)?$' THEN width::numeric
-        ELSE 15
+        WHEN width ~ '^[0-9]+([.][0-9]+)?$' THEN width::numeric
+        ELSE NULL
     END AS width,
-    ST_SetSRID(ST_Multi(ST_Buffer(ST_MakeValid(way),
-                    CASE WHEN width ~ '^[-+]?[0-9]+(\.[0-9]+)?$' THEN width::numeric / 2 ELSE 15 END,
-                    'endcap=flat join=mitre')), 3857) AS multipolygon
-FROM
-    planet_osm_line
-WHERE
-    aeroway = 'taxiway' AND ST_IsValid(way);
+    ST_Multi(ST_CollectionExtract(
+        ST_MakeValid(ST_SimplifyPreserveTopology(way, 3)),
+        3
+    )) AS multipolygon
+FROM planet_osm_polygon
+WHERE aeroway = 'runway'
+  AND way IS NOT NULL
+  AND NOT ST_IsEmpty(ST_CollectionExtract(ST_MakeValid(way), 3));
 
--- Add an index for better query performance
 CREATE INDEX idx_runway_polygons ON runway_polygons USING GIST (multipolygon);
-
 """
 )
 conn.commit()
 
-# Close the database connection
 cur.close()
 conn.close()
