@@ -1,0 +1,6 @@
+# Slim style for a side import of large-building footprints.
+# osm2pgsql -p bldg so this does not replace planet_osm_*.
+node,way   building     text         polygon
+node,way   leisure      text         polygon
+node,way   name         text         linear
+way        way_area     real         linear
