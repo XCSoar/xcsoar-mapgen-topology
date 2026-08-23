@@ -40,6 +40,13 @@ if [ ! -d "$OUT_DIR" ] || [ -z "$(ls -A "$OUT_DIR" 2>/dev/null)" ]; then
   exit 1
 fi
 
+PYTHON=python3
+if [ -x "$REPO_ROOT/bin/python3" ]; then
+  PYTHON="$REPO_ROOT/bin/python3"
+fi
+"$PYTHON" "$SCRIPT_DIR/build_qix.py"
+"$PYTHON" "$SCRIPT_DIR/check_topology.py"
+
 tmp_dir=$(mktemp -d)
 cleanup() { rm -rf "$tmp_dir"; }
 trap cleanup EXIT
@@ -67,9 +74,12 @@ rm -f "$DEST"
   zip -0 -X "$DEST" *
 )
 
-if ! unzip -l "$DEST" | grep -q 'terrain\.jp2'; then
+# grep -q closes the pipe on the first hit; unzip then SIGPIPEs and
+# pipefail treats that as a missing terrain.jp2.
+if ! grep -F 'terrain.jp2' <<<"$(unzip -l "$DEST")" >/dev/null; then
   echo "Failed to pack terrain.jp2 into $DEST" >&2
   exit 1
 fi
 
 echo "Wrote $DEST (DEM from $SRC_XCM)"
+"$PYTHON" "$SCRIPT_DIR/check_topology.py" "$DEST"
