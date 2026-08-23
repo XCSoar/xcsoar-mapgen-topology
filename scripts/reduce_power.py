@@ -5,8 +5,8 @@ from dbutil import connect, in_map_bbox
 conn = connect()
 cur = conn.cursor()
 
-# Visible out to 10 nm. Transmission lines are long and straight;
-# 15 m is enough even when zoomed in.
+# power=line: high-voltage conductors, drawn to range 5.
+# power=tower: lattice pylons (not wooden poles). Range 8 in topology.tpl.
 cur.execute(
     f"""
     DROP TABLE IF EXISTS reduced_powerlines;
@@ -19,6 +19,14 @@ cur.execute(
         AND {in_map_bbox()}
     ) s
     WHERE way_reduced IS NOT NULL AND NOT ST_IsEmpty(way_reduced);
+
+    DROP TABLE IF EXISTS reduced_power_minor;
+    DROP TABLE IF EXISTS reduced_power_towers;
+    CREATE TABLE reduced_power_towers AS
+    SELECT osm_id, way AS geom
+    FROM planet_osm_point
+    WHERE "power" = 'tower'
+      AND {in_map_bbox()};
 """
 )
 conn.commit()

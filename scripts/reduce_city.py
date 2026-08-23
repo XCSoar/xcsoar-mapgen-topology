@@ -76,6 +76,9 @@ FROM (
 WHERE GeometryType(geom) IN ('POLYGON', 'POLYGONZ');
 
 DROP TABLE city_dissolved;
+
+CREATE INDEX city_polygons_small_gix ON city_polygons_small USING GIST(way);
+CREATE INDEX city_polygons_large_gix ON city_polygons_large USING GIST(way);
 """
 )
 conn.commit()

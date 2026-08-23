@@ -6,7 +6,8 @@ conn = connect()
 cur = conn.cursor()
 
 # Visible only to 2 nm. 30 m simplify is several pixels at that range
-# and turns residential streets into sticks.
+# and turns residential streets into sticks. Streets fully inside a
+# town surface are already covered by city_area_* at this zoom.
 cur.execute(
     f"""
     DROP TABLE IF EXISTS reduced_roads_small;
@@ -20,7 +21,15 @@ cur.execute(
         AND (tunnel IS NULL OR tunnel = 'no')
         AND {in_map_bbox()}
     ) s
-    WHERE way_reduced IS NOT NULL AND NOT ST_IsEmpty(way_reduced);
+    WHERE way_reduced IS NOT NULL AND NOT ST_IsEmpty(way_reduced)
+      AND NOT EXISTS (
+        SELECT 1 FROM city_polygons_large c
+        WHERE c.way && s.way_reduced AND ST_Within(s.way_reduced, c.way)
+      )
+      AND NOT EXISTS (
+        SELECT 1 FROM city_polygons_small c
+        WHERE c.way && s.way_reduced AND ST_Within(s.way_reduced, c.way)
+      );
 """
 )
 conn.commit()

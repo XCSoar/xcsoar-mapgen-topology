@@ -1,15 +1,17 @@
 #!/usr/bin/python3
 
-from dbutil import connect, in_map_bbox
+from dbutil import connect, in_map_bbox, split_area_sql
 
 conn = connect()
 cur = conn.cursor()
 
-# Layers stay visible when zoomed in, so simplify for close range and
-# filter by the layer's max range.
-# Small (3 nm): 5 m, keep holes; include river/stream areas.
-# Large (50 nm): lakes 40 m / holes ≥ 2 ha; rivers 10 m / holes ≥ 0.2 ha.
-# Lines (50 nm): river + canal centreline at 10 m, clipped away where
+# Layers stay visible when zoomed in, so simplify for close range.
+# Small (range 3): 5 m, keep holes; include river/stream areas.
+# Large (range 30): 5 m, same as small — these stay on when zoomed in.
+# Holes ≥ 0.5 ha (lakes) / 0.2 ha (rivers). 40 m left Geneva/Garda as
+# ~200 m shoreline segments. XCSoar already thins vertices near the
+# layer threshold, so the shapefile can stay dense.
+# Lines (range 15): river + canal centreline at 10 m, clipped away where
 # a water polygon is already drawn (XCSoar cannot hide a layer on zoom).
 cur.execute(
     f"""
@@ -58,8 +60,8 @@ FROM (
     FROM (
       SELECT osm_id, name,
         (ST_Dump(ST_MakeValid(way))).geom AS geom,
-        CASE WHEN water = 'river' THEN 10 ELSE 40 END AS simplify_m,
-        CASE WHEN water = 'river' THEN 2000 ELSE 20000 END AS hole_min_m2
+        5 AS simplify_m,
+        CASE WHEN water = 'river' THEN 2000 ELSE 5000 END AS hole_min_m2
       FROM planet_osm_polygon
       WHERE ("natural" = 'water' OR "landuse" IN ('reservoir', 'basin'))
         AND (water IS NULL OR water NOT IN (
@@ -73,6 +75,28 @@ FROM (
 WHERE way IS NOT NULL
   AND NOT ST_IsEmpty(way)
   AND ST_Dimension(way) = 2;
+
+DROP TABLE IF EXISTS water_polygons_small_split;
+CREATE TABLE water_polygons_small_split AS
+SELECT osm_id, name, (d).geom AS way
+FROM water_polygons_small,
+LATERAL {split_area_sql()} AS piece,
+LATERAL ST_Dump(ST_CollectionExtract(ST_MakeValid(piece), 3)) AS d
+WHERE GeometryType((d).geom) IN ('POLYGON', 'POLYGONZ')
+  AND ST_Dimension((d).geom) = 2;
+DROP TABLE water_polygons_small;
+ALTER TABLE water_polygons_small_split RENAME TO water_polygons_small;
+
+DROP TABLE IF EXISTS water_polygons_large_split;
+CREATE TABLE water_polygons_large_split AS
+SELECT osm_id, name, (d).geom AS way
+FROM water_polygons_large,
+LATERAL {split_area_sql()} AS piece,
+LATERAL ST_Dump(ST_CollectionExtract(ST_MakeValid(piece), 3)) AS d
+WHERE GeometryType((d).geom) IN ('POLYGON', 'POLYGONZ')
+  AND ST_Dimension((d).geom) = 2;
+DROP TABLE water_polygons_large;
+ALTER TABLE water_polygons_large_split RENAME TO water_polygons_large;
 """
 )
 conn.commit()

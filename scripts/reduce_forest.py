@@ -1,6 +1,6 @@
 #!/usr/bin/python3
 
-from dbutil import connect, in_map_bbox
+from dbutil import connect, in_map_bbox, split_area_sql
 
 conn = connect()
 cur = conn.cursor()
@@ -95,6 +95,17 @@ FROM (
 WHERE way IS NOT NULL AND NOT ST_IsEmpty(way);
 
 DROP TABLE forest_dissolved;
+
+DROP TABLE IF EXISTS forest_polygons_large_split;
+
+CREATE TABLE forest_polygons_large_split AS
+SELECT (d).geom AS way
+FROM forest_polygons_large,
+LATERAL {split_area_sql()} AS piece,
+LATERAL ST_Dump(ST_CollectionExtract(ST_MakeValid(piece), 3)) AS d
+WHERE GeometryType((d).geom) IN ('POLYGON', 'POLYGONZ');
+DROP TABLE forest_polygons_large;
+ALTER TABLE forest_polygons_large_split RENAME TO forest_polygons_large;
 """
 )
 conn.commit()
