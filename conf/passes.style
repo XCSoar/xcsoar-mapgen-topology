@@ -1,0 +1,7 @@
+# Side import of OSM mountain passes (osm2pgsql -p mp).
+# Does not replace planet_osm_*.
+node,way   mountain_pass text         linear
+node,way   natural       text         linear
+node,way   name          text         linear
+node,way   ele           text         linear
+node,way   highway       text         linear
